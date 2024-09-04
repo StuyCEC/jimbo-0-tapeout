@@ -5,7 +5,7 @@
 
 `default_nettype none
 
-module tt_um_example (
+module tt_um_ringedSquid_top (
     input  wire [7:0] ui_in,    // Dedicated inputs
     output wire [7:0] uo_out,   // Dedicated outputs
     input  wire [7:0] uio_in,   // IOs: Input path
@@ -16,12 +16,22 @@ module tt_um_example (
     input  wire       rst_n     // reset_n - low to reset
 );
 
-  // All output pins must be assigned. If not used, assign to 0.
-  assign uo_out  = ui_in + uio_in;  // Example: ou_out is the sum of ui_in and uio_in
-  assign uio_out = 0;
-  assign uio_oe  = 0;
+  wire uio_rw;
+  wire [11:0] bus_addr;
+
+  assign uio_oe = {4{uio_rw}};
+  assign bus_addr = {uio_out[7:0], uio_out[7:4]};
+
+	CPU cpu (
+		.clk(clk),
+		.rst_n(rst_n),
+		.bus_data_in(uio_in[3:0]),
+    .bus_data_rw(uio_rw),
+    .bus_data_out(uio_out[3:0]),
+    .bus_addr(buss_addr)
+	);
 
   // List all unused inputs to prevent warnings
-  wire _unused = &{ena, clk, rst_n, 1'b0};
+  wire _unused = &{ui_in[7:0], ,ena, 1'b0};
 
 endmodule

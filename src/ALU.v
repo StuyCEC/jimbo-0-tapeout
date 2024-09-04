@@ -1,3 +1,7 @@
+/*
+ * Arithmetic Logic Unit
+ */
+
 module ALU (
 	input wire [3:0] a,
 	input wire [3:0] b,

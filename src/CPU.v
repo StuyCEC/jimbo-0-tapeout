@@ -1,5 +1,7 @@
-`include "ALU.v"
-
+/*
+ * Main 4-bit CPU Module
+ */
+ 
 `define MOV 		4'b0000
 `define STO 		4'b0001
 `define LD  		4'b0010 
@@ -14,7 +16,7 @@
 `define JMP  		4'b1011
 `define JNZ  		4'b1100
 `define JNC_JNB  	4'b1101
-`define JNL	  	4'b1110
+`define JNL	  	    4'b1110
 `define NOP  		4'b1111
 
 `define FETCH 0
@@ -25,18 +27,15 @@
 
 module CPU (
 	input wire clk,
-	input wire reset,
-	inout reg [3:0] bus_data,
+	input wire rst_n,
+	input wire [3:0] bus_data_in,
+	output reg bus_data_rw,
+	output reg [3:0] bus_data_out,
 	output reg [11:0] bus_addr
 );
 
 	reg [3:0] state;
 	reg [3:0] fetch_state;
-
-	reg bus_data_rw; //0 for r, 1 for w
-	reg [3:0] bus_data_out;
-
-	assign bus_data = bus_data_rw ? 4'hz : bus_data_out;
 
 	reg [3:0] reg_bank [0:6];
 
@@ -71,7 +70,7 @@ module CPU (
 	);
 
 	always @(posedge clk) begin
-		if (reset) begin
+		if (!rst_n) begin
 			state = `FETCH;
 			fetch_state = 0;
 
@@ -104,19 +103,19 @@ module CPU (
 							fetch_state = 1;
 						end
 						1: begin
-							reg_instruction[3:0] = bus_data;
+							reg_instruction[3:0] = bus_data_in;
 							program_counter = program_counter + 1;
 							bus_addr = program_counter;
 							fetch_state = 2;
 						end
 						2: begin
-							reg_instruction[7:4] = bus_data;
+							reg_instruction[7:4] = bus_data_in;
 							program_counter = program_counter + 1;
 							bus_addr = program_counter;
 							fetch_state = 3;
 						end
 						3: begin
-							reg_instruction[11:8] = bus_data;
+							reg_instruction[11:8] = bus_data_in;
 							program_counter = program_counter + 1;
 							bus_addr = program_counter;
 							fetch_state = 0; //Reset fetch state
@@ -144,7 +143,7 @@ module CPU (
 								end
 								2'b01: begin
 									reg_bank[4] = arg1;
-									reg_bank[5] = bus_data;
+									reg_bank[5] = bus_data_in;
 									program_counter = program_counter + 1;
 								end
 							endcase
@@ -155,7 +154,7 @@ module CPU (
 								2'b00: bus_addr = {reg_bank[6], reg_bank[5], reg_bank[4]};
 								2'b01: begin
 									reg_bank[4] = arg1;
-									reg_bank[5] = bus_data;
+									reg_bank[5] = bus_data_in;
 									program_counter = program_counter + 1;
 
 								end
@@ -313,7 +312,7 @@ module CPU (
 								2'b00: program_counter = {reg_bank[6], reg_bank[5], reg_bank[4]};
 								2'b01: begin
 									reg_bank[4] = arg1;
-									reg_bank[5] = bus_data;
+									reg_bank[5] = bus_data_in;
 									program_counter = program_counter + 1;
 								end
 							endcase
@@ -325,7 +324,7 @@ module CPU (
 									2'b00: program_counter = {reg_bank[6], reg_bank[5], reg_bank[4]};
 									2'b01: begin
 										reg_bank[4] = arg1;
-										reg_bank[5] = bus_data;
+										reg_bank[5] = bus_data_in;
 										program_counter = program_counter + 1;
 									end
 								endcase
@@ -348,7 +347,7 @@ module CPU (
 								2'b01: begin
 									if (!reg_bank[3][0]) begin
 										reg_bank[4] = arg1;
-										reg_bank[5] = bus_data;
+										reg_bank[5] = bus_data_in;
 										program_counter = program_counter + 1;	
 									end
 									else begin
@@ -366,7 +365,7 @@ module CPU (
 								2'b11: begin
 									if (!reg_bank[3][1]) begin
 										reg_bank[4] = arg1;
-										reg_bank[5] = bus_data;
+										reg_bank[5] = bus_data_in;
 										program_counter = program_counter + 1;
 									end
 									else begin
@@ -382,7 +381,7 @@ module CPU (
 									2'b00: program_counter = {reg_bank[6], reg_bank[5], reg_bank[4]};
 									2'b01: begin
 										reg_bank[4] = arg1;
-										reg_bank[5] = bus_data;
+										reg_bank[5] = bus_data_in;
 										program_counter = program_counter + 1;
 									end
 								endcase
@@ -407,7 +406,7 @@ module CPU (
 									state = `FETCH;
 								end
 								2'b01: begin
-									reg_bank[6] = bus_data;
+									reg_bank[6] = bus_data_in;
 									program_counter = program_counter + 1;
 								end
 							endcase
@@ -416,11 +415,11 @@ module CPU (
 						`LD: begin
 							case (option)
 								2'b00: begin
-									reg_bank[arg2] = bus_data;
+									reg_bank[arg2] = bus_data_in;
 									state = `FETCH;
 								end
 								2'b01: begin
-									reg_bank[6] = bus_data;
+									reg_bank[6] = bus_data_in;
 									program_counter = program_counter + 1;
 								end
 							endcase
@@ -495,30 +494,30 @@ module CPU (
 						`JMP: begin
 							case (option)
 								2'b00: state = `FETCH;
-								2'b01: reg_bank[6] = bus_data;
+								2'b01: reg_bank[6] = bus_data_in;
 							endcase
 						end
 
 						`JNZ: begin
 							case (option)
 								2'b00: state = `FETCH; 
-								2'b01: reg_bank[6] = bus_data;
+								2'b01: reg_bank[6] = bus_data_in;
 							endcase
 						end
 						
 						`JNC_JNB: begin
 							case (option)
 								2'b00: state = `FETCH; 
-								2'b01: reg_bank[6] = bus_data;
+								2'b01: reg_bank[6] = bus_data_in;
 								2'b10: state = `FETCH; 
-								2'b11: reg_bank[6] = bus_data;
+								2'b11: reg_bank[6] = bus_data_in;
 							endcase
 						end
 						
 						`JNL: begin
 							case (option)
 								2'b00: state = `FETCH; 
-								2'b01: reg_bank[6] = bus_data;
+								2'b01: reg_bank[6] = bus_data_in;
 							endcase
 						end
 
@@ -568,7 +567,7 @@ module CPU (
 
 					case(opcode)
 						`STO: bus_data_out = reg_bank[arg2];
-						`LD: reg_bank[arg2] = bus_data;
+						`LD: reg_bank[arg2] = bus_data_in;
 					endcase
 				end
 			endcase
