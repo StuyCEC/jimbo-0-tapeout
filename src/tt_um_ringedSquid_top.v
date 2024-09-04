@@ -19,7 +19,8 @@ module tt_um_ringedSquid_top (
   wire uio_rw;
   wire [11:0] bus_addr;
 
-  assign uio_oe = {4{1}, 4{uio_rw}};
+  assign uio_oe[7:4] = 4'b1111;
+  assign uio_oe [3:0] = {4{uio_rw}};
   assign bus_addr = {uo_out[7:0], uio_out[7:4]};
 
 	CPU cpu (
