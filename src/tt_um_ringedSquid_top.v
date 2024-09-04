@@ -28,10 +28,10 @@ module tt_um_ringedSquid_top (
 		.bus_data_in(uio_in[3:0]),
     .bus_data_rw(uio_rw),
     .bus_data_out(uio_out[3:0]),
-    .bus_addr(buss_addr)
+    .bus_addr(bus_addr)
 	);
 
   // List all unused inputs to prevent warnings
-  wire _unused = &{ui_in[7:0], ,ena, 1'b0};
+  wire _unused = &{ui_in[7:0], ena, 1'b0};
 
 endmodule
