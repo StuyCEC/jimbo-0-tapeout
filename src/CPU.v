@@ -1,49 +1,28 @@
 `include "ALU.v"
 
-`define MOV_R 	6'b000000
-`define MOV_I 	6'b000001
-`define STO_R 	6'b000100
-`define STO_I 	6'b000101
-`define LD_R  	6'b001000 
-`define LD_I  	6'b001001
-`define ADD_R 	6'b001101
-`define ADD_I 	6'b001101
-`define INC   	6'b001110
-`define ADC_R 	6'b010000
-`define ADC_I 	6'b010001
-`define SUB_R 	6'b010100
-`define SUB_R 	6'b010100
-`define SUB_Y 	6'b010110
-`define DEC   	6'b010111
-`define SBB_R 	6'b011001
-`define SBB_I 	6'b011001
-`define SBB_Y 	6'b011001
-`define SHL   	6'b011100
-`define SHR     6'b011101
-`define NAND_R  6'b100000
-`define NAND_I  6'b100001
-`define NOR_R   6'b100010
-`define NOR_I  	6'b100011
-`define AND_R   6'b100100
-`define AND_I   6'b100101
-`define OR_R   	6'b100110
-`define OR_I   	6'b100111
-`define XOR_R   6'b101000
-`define XOR_I   6'b101001
-`define NOT   	6'b101010
-`define JMP_M  	6'b101100
-`define JMP_I  	6'b101101
-`define JNZ_M  	6'b110000
-`define JNZ_I  	6'b110001
-`define JNC_M  	6'b110100
-`define JNC_I  	6'b110101
-`define JNB_M  	6'b110110
-`define JNB_I  	6'b110111
-`define JNL_M  	6'b111000
-`define JNL_I  	6'b111001
-`define JNE_M  	6'b111010
-`define JNE_I  	6'b111011
-`define NOP  	6'b111100
+`define MOV 		4'b0000
+`define STO 		4'b0001
+`define LD  		4'b0010 
+`define ADD_INC 	4'b0011
+`define ADC 		4'b0100
+`define SUB_DEC 	4'b0101
+`define SBB 		4'b0110
+`define SHLR   		4'b0111
+`define NAND_NOR  	4'b1000
+`define AND_OR   	4'b1001
+`define XOR_NOT   	4'b1010
+`define JMP  		4'b1011
+`define JNZ  		4'b1100
+`define JNC_JNB  	4'b1101
+`define JNL_JNE  	4'b1110
+`define NOP  		4'b1111
+
+`define FETCH 0
+`define STAGE_0 1
+`define STAGE_1 2
+`define STAGE_2 3
+`define STAGE_3 4
+`define STAGE_4 5
 
 module CPU (
 	input wire clk,
@@ -51,17 +30,16 @@ module CPU (
 	inout reg [3:0] bus_data,
 	output reg [11:0] bus_addr
 );
+
+	reg [3:0] state;
+	reg [3:0] fetch_state;
+
 	reg bus_data_rw; //0 for r, 1 for w
 	reg [3:0] bus_data_out;
 
 	assign bus_data = bus_data_rw ? 4'hz : bus_data_out;
 
-	reg [3:0] reg_a;
-	reg [3:0] reg_b;
-	reg [3:0] reg_f;
-	reg [3:0] reg_addr_0;
-	reg [3:0] reg_addr_1;
-	reg [3:0] reg_addr_2;
+	reg [3:0] reg_bank [0:6];
 
 	reg [3:0] alu_a;
 	reg [3:0] alu_b;
@@ -79,9 +57,9 @@ module CPU (
 	wire [2:0] arg2;
 
 	assign opcode = reg_instruction[11:8];
-	assign option = reg_instruction[7];
-	assign arg1 = reg_instruction[6:4];
-	assign arg2 = reg_instruction[3:0];
+	assign option = reg_instruction[7:6];
+	assign arg1 = reg_instruction[5:3];
+	assign arg2 = reg_instruction[2:0];
 
 	ALU alu(
 		.a(alu_a),
@@ -95,13 +73,17 @@ module CPU (
 
 	always @(posedge clk) begin
 		if (reset) begin
-			reg_a = 4'b0000;
-			reg_b = 4'b0000;
-			reg_f = 4'b0000;
-			reg_addr_0 = 4'b0000;
-			reg_addr_1 = 4'b0000;
-			reg_addr_2 = 4'b0000;
-			
+			state = FETCH;
+			fetch_state = 0;
+
+			reg_bank[0] = 4'b0000;
+			reg_bank[1] = 4'b0000;
+			reg_bank[2] = 4'b0000;
+			reg_bank[3] = 4'b0000;
+			reg_bank[4] = 4'b0000;
+			reg_bank[5] = 4'b0000;
+			reg_bank[6] = 4'b0000;
+
 			alu_a = 4'b0000;
 			alu_b = 4'b0000;
 			alu_mode = 4'b0000;
@@ -114,6 +96,165 @@ module CPU (
 			bus_data_out = 4'b0000;
 
 		end else begin
+			case (state)
+				FETCH: begin
+					case (fetch_state)
+						0: begin
+							bus_data_rw = 1'b0;
+							bus_addr = program_counter;
+							fetch_state = 1;
+						end
+						1: begin
+							reg_instruction[3:0] = bus_data;
+							program_counter = program_counter + 1;
+							bus_addr = program_counter;
+							fetch_state = 2;
+						end
+						2: begin
+							reg_instruction[7:4] = bus_data;
+							program_counter = program_counter + 1;
+							bus_addr = program_counter;
+							fetch_state = 3;
+						end
+						3: begin
+							reg_instruction[11:8] = bus_data;
+							program_counter = program_counter + 1;
+							bus_addr = program_counter;
+							fetch_state = 0; //Reset fetch state
+							state = STAGE_0;
+						end
+					endcase
+				end
+				STAGE_0: begin
+					case (opcode)
+						MOV: begin
+							case (option)
+								2'b00: begin
+									reg_bank[arg2] = reg_bank[arg1];
+								end
+								2'b01: begin
+									reg_bank[arg2] = arg1;
+								end
+							endcase
+						end
+						
+						STO: begin
+							case (option)
+								2'b00: begin
+									bus_data_rw = 1'b1;
+									bus_addr = {reg_bank[6], reg_bank[5], reg_bank[4]};
+								end
+								2'b01: begin
+									bus_addr[3:0] = arg1;
+								end
+							endcase
+						end
+
+						LD: begin
+							case (option)
+								2'b00: begin
+									bus_data_rw = 0'b1;
+									bus_addr = {reg_bank[6], reg_bank[5], reg_bank[4]};
+								end
+								2'b01: begin
+									bus_addr[3:0] = arg1;
+								end
+							endcase
+						end
+
+						ADD_INC: begin
+							alu_mode = 4'b0000;
+							case (option)
+								2'b00: begin
+									alu_a = reg_bank[arg1];
+									alu_b = reg_bank[arg2];
+								end
+								2'b01: begin
+									alu_a = arg1;
+									alu_b = reg_bank[arg2];
+								end
+								2'b10: begin
+									alu_a = 4'b0001;
+									alu_b = reg_bank[arg2];
+								end
+							endcase
+						end
+
+						ADC: begin
+							alu_mode = 4'b0001;
+							case (option)
+								2'b00: begin
+									alu_a = reg_bank[arg1];
+									alu_b = reg_bank[arg2];
+								end
+								2'b01: begin
+									alu_a = arg1;
+									alu_b = reg_bank[arg2];
+								end
+							endcase
+						end
+						
+						SUB_DEC: begin
+							alu_mode = 4'b0010;
+							case (option)
+								2'b00: begin
+									alu_a = reg_bank[arg1];
+									alu_b = reg_bank[arg2];
+								end
+								2'b01: begin
+									alu_a = arg1;
+									alu_b = reg_bank[arg2];
+								end
+								2'b10: begin
+									alu_a = 4'b0001;
+									alu_b = reg_bank[arg2];
+								end
+							endcase
+						end
+
+						SBB: begin
+							alu_mode = 4'b0011;
+							case (option)
+								2'b00: begin
+									alu_a = reg_bank[arg1];
+									alu_b = reg_bank[arg2];
+								end
+								2'b01: begin
+									alu_a = arg1;
+									alu_b = reg_bank[arg2];
+								end
+							endcase
+						end
+						
+						SHLR: begin
+							case (option)
+								2'b00: begin
+									alu_mode = 4'b0100;
+									alu_a = reg_bank[arg2];
+								end
+								2'b01: begin
+									alu_mode = 4'b0101;
+									alu_a = reg_bank[arg2];
+								end
+							endcase
+						end
+
+
+
+
+
+
+
+
+
+				end
+
+
+					
+
+					
+
+
 
 
 		end

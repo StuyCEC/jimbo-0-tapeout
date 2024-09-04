@@ -24,8 +24,6 @@ module ALU (
 			4'b1000: c = a ^ b;
 			4'b1001: c = ~(a & b);
 			4'b1010: c = ~(a | b);
-			4'b1011: c = a + 1;
-			4'b1100: c = a - 1;
 			default: c = 4'b0000;
 		endcase
 
