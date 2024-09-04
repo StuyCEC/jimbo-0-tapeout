@@ -14,7 +14,7 @@
 `define JMP  		4'b1011
 `define JNZ  		4'b1100
 `define JNC_JNB  	4'b1101
-`define JNL_JNE  	4'b1110
+`define JNL	  	4'b1110
 `define NOP  		4'b1111
 
 `define FETCH 0
@@ -22,7 +22,6 @@
 `define STAGE_1 2
 `define STAGE_2 3
 `define STAGE_3 4
-`define STAGE_4 5
 
 module CPU (
 	input wire clk,
@@ -65,8 +64,8 @@ module CPU (
 		.a(alu_a),
 		.b(alu_b),
 		.mode(alu_mode),
-		.carry_f(reg_f[0]),
-		.borrow_f(reg_f[1]),
+		.carry_f(reg_bank[3][0]),
+		.borrow_f(reg_bank[3][1]),
 		.c(alu_o),
 		.flags(alu_f)
 	);
@@ -126,6 +125,8 @@ module CPU (
 					endcase
 				end
 				STAGE_0: begin
+					state = STAGE_1;
+
 					case (opcode)
 						MOV: begin
 							case (option)
@@ -145,7 +146,9 @@ module CPU (
 									bus_addr = {reg_bank[6], reg_bank[5], reg_bank[4]};
 								end
 								2'b01: begin
-									bus_addr[3:0] = arg1;
+									reg_bank[4] = arg1;
+									reg_bank[5] = bus_data;
+									program_counter = program_counter + 1;
 								end
 							endcase
 						end
@@ -153,11 +156,13 @@ module CPU (
 						LD: begin
 							case (option)
 								2'b00: begin
-									bus_data_rw = 0'b1;
 									bus_addr = {reg_bank[6], reg_bank[5], reg_bank[4]};
 								end
 								2'b01: begin
-									bus_addr[3:0] = arg1;
+									reg_bank[4] = arg1;
+									reg_bank[5] = bus_data;
+									program_counter = program_counter + 1;
+
 								end
 							endcase
 						end
@@ -239,28 +244,350 @@ module CPU (
 							endcase
 						end
 
+						NAND_NOR: begin
+							case (option)
+								2'b00: begin
+									alu_mode = 4'b1010;
+									alu_a = reg_bank[arg1];
+									alu_b = reg_bank[arg2];
+								end
+								2'b01: begin
+									alu_mode = 4'b1010;
+									alu_a = arg1;
+									alu_b = reg_bank[arg2];
+								end
+								2'b10: begin
+									alu_mode = 4'b1011;
+									alu_a = reg_bank[arg1];
+									alu_b = reg_bank[arg2];
+								end
+								2'b11: begin
+									alu_mode = 4'b1011;
+									alu_a = arg1;
+									alu_b = reg_bank[arg2];
+								end
+							endcase
+						end
+						
+						AND_OR: begin
+							case (option)
+								2'b00: begin
+									alu_mode = 4'b0110;
+									alu_a = reg_bank[arg1];
+									alu_b = reg_bank[arg2];
+								end
+								2'b01: begin
+									alu_mode = 4'b0110;
+									alu_a = arg1;
+									alu_b = reg_bank[arg2];
+								end
+								2'b10: begin
+									alu_mode = 4'b0111;
+									alu_a = reg_bank[arg1];
+									alu_b = reg_bank[arg2];
+								end
+								2'b11: begin
+									alu_mode = 4'b0111;
+									alu_a = arg1;
+									alu_b = reg_bank[arg2];
+								end
+							endcase
+						end
+						
+						XOR_NOT: begin
+							case (option)
+								2'b00: begin
+									alu_mode = 4'b1001;
+									alu_a = reg_bank[arg1];
+									alu_b = reg_bank[arg2];
+								end
+								2'b01: begin
+									alu_mode = 4'b1001;
+									alu_a = arg1;
+									alu_b = reg_bank[arg2];
+								end
+								2'b10: begin
+									alu_mode = 4'b1000;
+									alu_a = reg_bank[arg2];
+								end
+							endcase
+						end
 
+						JMP: begin
+							case (option)
+								2'b00: program_counter = {reg_bank[6], reg_bank[5], reg_bank[4]};
+								2'b01: begin
+									reg_bank[4] = arg1;
+									reg_bank[5] = bus_data;
+									program_counter = program_counter + 1;
+								end
+							endcase
+						end
 
+						JNZ: begin
+							if (!reg_bank[3][2]) begin
+								case (option)
+									2'b00: program_counter = {reg_bank[6], reg_bank[5], reg_bank[4]};
+									2'b01: begin
+										reg_bank[4] = arg1;
+										reg_bank[5] = bus_data;
+										program_counter = program_counter + 1;
+									end
+								endcase
+							end
+							else begin
+								state = FETCH;
+							end
+						end
+						
+						JNC_JNB: begin
+							case (option)
+								2'b00: begin
+									if (!reg_bank[3][0]) begin
+										program_counter = {reg_bank[6], reg_bank[5], reg_bank[4]};
+									end
+									else begin
+										state = FETCH;
+									end
+								end
+								2'b01: begin
+									if (!reg_bank[3][0]) begin
+										reg_bank[4] = arg1;
+										reg_bank[5] = bus_data;
+										program_counter = program_counter + 1;	
+									end
+									else begin
+										state = FETCH;
+									end
+								end
+								2'b10: begin
+									if (!reg_bank[3][1]) begin
+										program_counter = {reg_bank[6], reg_bank[5], reg_bank[4]};
+									end
+									else begin 
+										state = FETCH;
+									end
+								end
+								2'b11: begin
+									if (!reg_bank[3][1]) begin
+										reg_bank[4] = arg1;
+										reg_bank[5] = bus_data;
+										program_counter = program_counter + 1;
+									end
+									else begin
+										state = FETCH;
+									end
+								end
+							endcase
+						end
+						
+						JNL: begin
+							if (!reg_bank[3][3]) begin
+								case (option)
+									2'b00: program_counter = {reg_bank[6], reg_bank[5], reg_bank[4]};
+									2'b01: begin
+										reg_bank[4] = arg1;
+										reg_bank[5] = bus_data;
+										program_counter = program_counter + 1;
+									end
+								endcase
+							end
+							else begin
+								state = FETCH;
+							end
+						end
 
+						default: state = FETCH;
+					endcase
+				end
+				
+				STAGE_1: begin
+					state = STAGE_2;
 
+					case (opcode)
+						STO: begin
+							case (option)
+								2'b00: begin
+									bus_data_out = reg_bank[arg2];
+									state = FETCH;
+								end
+								2'b01: begin
+									reg_bank[6] = bus_data;
+									program_counter = program_counter + 1;
+								end
+							endcase
+						end
 
+						LD: begin
+							case (option)
+								2'b00: begin
+									reg_bank[arg2] = bus_data;
+									state = FETCH;
+								end
+								2'b01: begin
+									reg_bank[6] = bus_data;
+									program_counter = program_counter + 1;
+								end
+							endcase
+						end
 
+						ADD_INC: begin
+							case (option)
+								2'b01: reg_bank[arg2] = alu_o;
+								default: reg_bank[arg1] = alu_o;
+							endcase
+							reg_bank[3] = alu_f;
+							state = FETCH;
+						end
 
+						ADC: begin
+							reg_bank[arg1] = alu_o;
+							reg_bank[3] = alu_f;
+							state = FETCH;
+						end
+						
+						SUB_DEC: begin
+							case (option)
+								2'b00: reg_bank[arg1] = alu_o;
+								default: reg_bank[arg2] = alu_o;
+							endcase
+							reg_bank[3] = alu_f;
+							state = FETCH;
+						end
 
+						SBB: begin
+							case (option)
+								2'b00: reg_bank[arg1] = alu_o;
+								default: reg_bank[arg2] = alu_o;
+							endcase
+							reg_bank[3] = alu_f;
+							state = FETCH;
+						end
+						
+						SHLR: begin
+							reg_bank[arg2] = alu_o;
+							state = FETCH;
+						end
+
+						NAND_NOR: begin
+							case (option)
+								2'b00: reg_bank[arg1] = alu_o;
+								2'b11: reg_bank[arg1] = alu_o;
+								default: reg_bank[arg2] = alu_o;
+							endcase
+							reg_bank[3] = alu_f;
+							state = FETCH;
+						end
+						
+						AND_OR: begin
+							case (option)
+								2'b00: reg_bank[arg1] = alu_o;
+								2'b11: reg_bank[arg1] = alu_o;
+								default: reg_bank[arg2] = alu_o;
+							endcase
+							reg_bank[3] = alu_f;
+							state = FETCH;
+						end
+						
+						XOR_NOT: begin
+							case (option)
+								2'b00: reg_bank[arg1] = alu_o;
+								default: reg_bank[arg2] = alu_o;
+							endcase
+							state = FETCH;
+						end
+
+						JMP: begin
+							case (option)
+								2'b00: state = FETCH;
+								2'b01: begin
+									reg_bank[6] = bus_data;
+								end
+							endcase
+						end
+
+						JNZ: begin
+							case (option)
+								2'b00: state = FETCH; 
+								2'b01: begin
+									reg_bank[6] = bus_data;
+								end
+							endcase
+						end
+						
+						JNC_JNB: begin
+							case (option)
+								2'b00: state = FETCH; 
+								2'b01: begin
+								       reg_bank[6] = bus_data;
+								end	       
+								2'b10: state = FETCH; 
+								2'b11: begin
+									reg_bank[6] = bus_data;
+								end
+							endcase
+						end
+						
+						JNL: begin
+							case (option)
+								2'b00: state = FETCH; 
+								2'b01: begin
+									reg_bank[6] = bus_data;
+								end
+							endcase
+						end
+
+						default: state = FETCH;
+					endcase
 				end
 
+				STAGE_2: begin
+					state = STAGE_3;
 
-					
+					case (opcode)
+						STO: begin
+							bus_data_rw = 1'b1;
+							bus_addr = {reg_bank[6], reg_bank[5], reg_bank[4]};
+						end
 
-					
+						LD: begin
+							bus_addr = {reg_bank[6], reg_bank[5], reg_bank[4]};
+						end
 
+						JMP: begin
+							program_counter = {reg_bank[6], reg_bank[5], reg_bank[4]};
+							state = FETCH;
+						end
 
+						JNZ: begin
+							program_counter = {reg_bank[6], reg_bank[5], reg_bank[4]};
+							state = FETCH;
+						end
+						
+						JNC_JNB: begin
+							program_counter = {reg_bank[6], reg_bank[5], reg_bank[4]};
+							state = FETCH;
+						end
+						
+						JNL: begin
+							program_counter = {reg_bank[6], reg_bank[5], reg_bank[4]};
+							smacrostate = FETCH;
+						end
 
+						default: state = FETCH;
+					endcase
+				end
 
+				STAGE_3: begin
+					state = FETCH;
+
+					case(opcode)
+						STO: bus_data_out = reg_bank[arg2];
+						LD: reg_bank[arg2] = bus_data;
+					endcase
+				end
+			endcase
 		end
 	end
-
-
-
 
 endmodule
