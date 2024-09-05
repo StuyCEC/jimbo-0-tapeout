@@ -41,7 +41,7 @@ pinout:
   uo[4]: "BUS_ADDR_8"
   uo[5]: "BUS_ADDR_9"
   uo[6]: "BUS_ADDR_10"
-  uo[7]: "BUS_ADDR_11"
+  uo[7]: "W_ENABLE"
 
   # Bidirectional pins
   uio[0]: "BUS_DATA_0"
