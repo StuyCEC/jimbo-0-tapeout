@@ -78,7 +78,7 @@ module CPU (
 			state <= `FETCH;
 			fetch_state <= 0;
 
-			reg_bank[0] <<= 4'b0000;
+			reg_bank[0] <= 4'b0000;
 			reg_bank[1] <= 4'b0000;
 			reg_bank[2] <= 4'b0000;
 			reg_bank[3] <= 4'b0000;
@@ -135,6 +135,7 @@ module CPU (
 							case (option)
 								2'b00: reg_bank[arg2] <= reg_bank[arg1];
 								2'b01: reg_bank[arg2] <= bus_data_in;
+								default: 
 							endcase
 							state <= `FETCH;
 						end
@@ -149,6 +150,7 @@ module CPU (
 									reg_bank[4] <= bus_data_in;
 									program_counter <= program_counter + 1;
 								end
+								default:
 							endcase
 						end
 
@@ -159,6 +161,7 @@ module CPU (
 									reg_bank[4] <= bus_data_in;
 									program_counter <= program_counter + 1;
 								end
+								default:
 							endcase
 						end
 
@@ -177,6 +180,7 @@ module CPU (
 									alu_a <= 4'b0001;
 									alu_b <= reg_bank[arg2];
 								end
+								default:
 							endcase
 						end
 
@@ -191,6 +195,7 @@ module CPU (
 									alu_a <= bus_data_in;
 									alu_b <= reg_bank[arg2];
 								end
+								default:
 							endcase
 						end
 						
@@ -209,6 +214,7 @@ module CPU (
 									alu_a <= 4'b0001;
 									alu_b <= reg_bank[arg2];
 								end
+								default:
 							endcase
 						end
 
@@ -223,6 +229,7 @@ module CPU (
 									alu_a <= bus_data_in;
 									alu_b <= reg_bank[arg2];
 								end
+								default:
 							endcase
 						end
 						
@@ -236,6 +243,7 @@ module CPU (
 									alu_mode <= 4'b0101;
 									alu_a <= reg_bank[arg2];
 								end
+								default:
 							endcase
 						end
 
@@ -261,6 +269,7 @@ module CPU (
 									alu_a <= bus_data_in;
 									alu_b <= reg_bank[arg2];
 								end
+								default:
 							endcase
 						end
 						
@@ -286,6 +295,7 @@ module CPU (
 									alu_a <= bus_data_in;
 									alu_b <= reg_bank[arg2];
 								end
+								default:
 							endcase
 						end
 						
@@ -305,6 +315,7 @@ module CPU (
 									alu_mode <= 4'b1000;
 									alu_a <= reg_bank[arg2];
 								end
+								default:
 							endcase
 						end
 
@@ -318,6 +329,7 @@ module CPU (
 									reg_bank[4] <= bus_data_in;
 									program_counter <= program_counter + 1;
 								end
+								default:
 							endcase
 						end
 
@@ -333,6 +345,7 @@ module CPU (
 										program_counter <= program_counter + 1;
 									end
 								endcase
+								default:
 							end
 							else begin
 								state <= `FETCH;
@@ -377,6 +390,7 @@ module CPU (
 										state <= `FETCH;
 									end
 								end
+								default:
 							endcase
 						end
 						
@@ -391,6 +405,7 @@ module CPU (
 										reg_bank[4] <= bus_data_in;
 										program_counter <= program_counter + 1;
 									end
+									default:
 								endcase
 							end
 							else begin
@@ -417,6 +432,7 @@ module CPU (
 									reg_bank[5] <= bus_data_in;
 									program_counter <= program_counter + 1;
 								end
+								default:
 							endcase
 						end
 
@@ -430,6 +446,7 @@ module CPU (
 									reg_bank[5] <= bus_data_in;
 									program_counter <= program_counter + 1;
 								end
+								default:
 							endcase
 						end
 
@@ -532,6 +549,7 @@ module CPU (
 						`JNZ: reg_bank[6] <= bus_data_in;
 						`JNC_JNB: reg_bank[6] <= bus_data_in;
 						`JNL: reg_bank[6] <= bus_data_in;
+						default:
 					endcase
 				end
 					
@@ -579,6 +597,7 @@ module CPU (
 					case(opcode)
 						`STO: bus_data_out <= reg_bank[arg2];
 						`LD: reg_bank[arg2] <= bus_data_in;
+						default:
 					endcase
 				end
 			endcase

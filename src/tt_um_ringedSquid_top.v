@@ -6,7 +6,7 @@
  /*
  `include "CPU.v"
  */
- 
+
 `default_nettype none
 
 module tt_um_ringedSquid_top (
@@ -21,9 +21,9 @@ module tt_um_ringedSquid_top (
 );
 
   wire uio_rw;
-  wire [11:0] bus_addr;
+  wire [11:0] bus_addr_wire;
 
-  assign uio_oe [3:0] = {4'b1111, {4{uio_rw}}};
+  assign uio_oe = {4'b1111, {4{uio_rw}}};
   assign bus_addr = {uo_out[7:0], uio_out[7:4]};
 
 	CPU cpu (
@@ -32,7 +32,7 @@ module tt_um_ringedSquid_top (
 		.bus_data_in(uio_in[3:0]),
     .bus_data_rw(uio_rw),
     .bus_data_out(uio_out[3:0]),
-    .bus_addr(bus_addr)
+    .bus_addr(bus_addr_wire)
 	);
 
   // List all unused inputs to prevent warnings
