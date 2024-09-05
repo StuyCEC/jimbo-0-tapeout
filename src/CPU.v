@@ -2,8 +2,9 @@
  * Main 4-bit CPU Module
  */
 
-
+/*
 `include "ALU.v"
+ */
  
 `define MOV 		4'b0000
 `define STO 		4'b0001
