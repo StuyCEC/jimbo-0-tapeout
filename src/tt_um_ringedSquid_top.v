@@ -24,7 +24,7 @@ module tt_um_ringedSquid_top (
   wire [11:0] bus_addr_wire;
 
   assign uio_oe = {4'b1111, {4{uio_rw}}};
-  assign bus_addr_wire = {uo_out[7:0], uio_out[7:4]};
+  assign {uo_out[7:0], uio_out[7:4]} = bus_addr_wire;
 
 	CPU cpu (
 		.clk(clk),
@@ -36,6 +36,6 @@ module tt_um_ringedSquid_top (
 	);
 
   // List all unused inputs to prevent warnings
-  wire _unused = &{ui_in[7:0], ena, 1'b0};
+  wire _unused = &{ui_in[7:0], uio_in[7:4], ena, 1'b0};
 
 endmodule

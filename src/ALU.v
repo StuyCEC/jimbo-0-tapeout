@@ -16,19 +16,19 @@ module ALU (
 
 	always @(*) begin
 		case (mode)
-			4'b0000: c <= a + b;
+			4'b0000: c = a + b;
 			4'b0001: {flags[0], c} = a + b + {4'b0000, carry_f};
-			4'b0010: c <= a - b;
+			4'b0010: c = a - b;
 			4'b0011: {flags[1], c} = a - b - {4'b0000, borrow_f};
-			4'b0100: c <= a << 1;
-			4'b0101: c <= a >> 1;
-			4'b0110: c <= a & b;
+			4'b0100: c = a << 1;
+			4'b0101: c = a >> 1;
+			4'b0110: c = a & b;
 			4'b0111: c = a | b;
-			4'b1000: c <= ~(a);
-			4'b1001: c <= a ^ b;
-			4'b1010: c <= ~(a & b);
-			4'b1011: c <= ~(a | b);
-			default: c <= 4'b0000;
+			4'b1000: c = ~(a);
+			4'b1001: c = a ^ b;
+			4'b1010: c = ~(a & b);
+			4'b1011: c = ~(a | b);
+			default: c = 4'b0000;
 		endcase
 
 		flags[2] = (c == 4'b0000);

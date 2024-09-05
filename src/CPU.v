@@ -5,7 +5,7 @@
 /*
 `include "ALU.v"
  */
- 
+
 `define MOV 		4'b0000
 `define STO 		4'b0001
 `define LD  		4'b0010 
@@ -117,7 +117,19 @@ module CPU (
 							reg_instruction[7:4] <= bus_data_in;
 							program_counter <= program_counter + 1;
 							bus_addr <= program_counter;
+							if (
+								(opcode == `JMP) ||
+								(opcode == `JNZ) ||
+								(opcode == `JNC_JNB) ||
+								(opcode == `JNL)
+							)
+							begin
+								fetch_state <= 0;
+								state <= `STAGE_0;
+							end
+							else begin
 							fetch_state <= 3;
+							end
 						end
 						3: begin
 							reg_instruction[11:8] <= bus_data_in;
