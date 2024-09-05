@@ -9,12 +9,15 @@ You can also include images in this folder and reference them in the markdown. E
 
 ## How it works
 
-Explain how your project works
+A simple 4-bit CPU with a 12-bit data width.
+
+RAM Chips compatible with this device are the CY7C164, and CY7C166.
+
 
 ## How to test
 
-Explain how to use your project
+Hook up the address lines to the RAM or whatever memory bus you want (if you want to interface some device through addresses). And run a program!
 
 ## External hardware
 
-List external hardware used in your project (e.g. PMOD, LED display, etc), if any
+CY7C164 or CY7C166 RAM chips.
