@@ -382,7 +382,8 @@ module CPU (
 									end
 								end
 								2'b11: begin
-						rogram_counte				reg_bank[4] <= bus_data_in;
+									if (!reg_bank[3][1]) begin
+										reg_bank[4] <= bus_data_in;
 										program_counter <= program_counter + 1;
 									end
 									else begin
