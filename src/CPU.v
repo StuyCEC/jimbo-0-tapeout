@@ -2,9 +2,9 @@
  * Main 4-bit CPU Module
  */
 
-
+/*
 `include "ALU.v"
- 
+ */
 
 `define MOV 		4'b0000
 `define STO 		4'b0001
@@ -61,7 +61,7 @@ module CPU (
 	wire [2:0] arg1;
 	wire [2:0] arg2;
 
-	/* debug */
+	/* debug 
 	wire [11:0] add_reg;
 	wire [3:0] reg0;
 	wire [3:0] reg1;
@@ -80,7 +80,7 @@ module CPU (
 	assign reg4 = reg_bank[4];
 	assign reg5 = reg_bank[5];
 	assign reg6 = reg_bank[6];
-	
+	*/
 
 	assign opcode = reg_instruction[11:8];
 	assign option = reg_instruction[7:6];
