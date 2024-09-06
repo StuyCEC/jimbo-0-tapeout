@@ -22,7 +22,7 @@ module tt_um_ringedSquid_top (
   wire uio_rw;
   wire [10:0] bus_addr_wire;
 
-  assign uio_oe = {4'b1111, {4{uio_rw}}};
+  assign uio_oe = {4'b0000, {4{uio_rw}}};
   assign uo_out[7] = uio_rw;
   assign {uo_out[6:0], uio_out[7:4]} = bus_addr_wire;
 

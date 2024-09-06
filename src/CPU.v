@@ -137,6 +137,7 @@ module CPU (
                     endcase
                 end
                 `STAGE_1: begin
+					reg_bank[3] <= temp_flags;
                     case (opcode)
                         `MOV: begin
                             case (option)

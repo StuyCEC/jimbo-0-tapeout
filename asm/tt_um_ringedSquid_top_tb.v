@@ -61,6 +61,8 @@ module tt_um_ringedSquid_top_tb;
         errors = 0;
         state = 0;  // Initially, we're running the program
 
+		data_bus_out = 4'b0000;
+
         $dumpfile("tt_um_ringedSquid_top_tb.vcd");
         $dumpvars(0, dut);
 
