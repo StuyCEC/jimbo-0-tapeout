@@ -42,6 +42,7 @@ module CPU (
 	reg [3:0] fetch_state;
 
 	reg [3:0] reg_bank [0:7];
+    reg [3:0] temp_flags;
 
 	reg [3:0] alu_a;
 	reg [3:0] alu_b;
@@ -119,6 +120,8 @@ module CPU (
 			bus_addr <= 11'h0;
 			bus_data_rw <= 1'b0;
 			bus_data_out <= 4'b0000;
+
+			temp_flags <= 4'b0000;
 
 		end else begin
             case (state)
@@ -434,7 +437,8 @@ module CPU (
 							case (option)
 								default: begin
 									reg_bank[arg1] <= alu_o;
-                                    reg_bank[3] <= alu_f;
+                                    temp_flags <= alu_f;  // Store ALU flags temporarily
+        							reg_bank[3] <= temp_flags;  // Update flags after one cycle delay
                                     state <= `FETCH;
 								end
 								2'b01: begin
@@ -443,7 +447,8 @@ module CPU (
 								end
                                 2'b10: begin
 									reg_bank[arg2] <= alu_o;
-                                    reg_bank[3] <= alu_f;
+                                    temp_flags <= alu_f;  // Store ALU flags temporarily
+       							 	reg_bank[3] <= temp_flags;  // Update flags after one cycle delay
                                     state <= `FETCH;
 								end
 							endcase
@@ -452,7 +457,8 @@ module CPU (
 							case (option)
 								default: begin
 									reg_bank[arg1] <= alu_o;
-                                    reg_bank[3] <= alu_f;
+                                    temp_flags <= alu_f;  // Store ALU flags temporarily
+        							reg_bank[3] <= temp_flags;  // Update flags after one cycle delay
                                     state <= `FETCH;
 								end
 								2'b01: begin
@@ -465,7 +471,8 @@ module CPU (
 							case (option)
 								default: begin
 									reg_bank[arg1] <= alu_o;
-                                    reg_bank[3] <= alu_f;
+                                    temp_flags <= alu_f;  // Store ALU flags temporarily
+        							reg_bank[3] <= temp_flags;  // Update flags after one cycle delay
                                     state <= `FETCH;
 								end
 								2'b01: begin
@@ -478,7 +485,8 @@ module CPU (
 								end
                                 2'b11: begin
 									reg_bank[arg2] <= alu_o;
-                                    reg_bank[3] <= alu_f;
+                                    temp_flags <= alu_f;  // Store ALU flags temporarily
+        							reg_bank[3] <= temp_flags;  // Update flags after one cycle delay
                                     state <= `FETCH;
 								end
 							endcase
@@ -487,7 +495,8 @@ module CPU (
 							case (option)
 								default: begin
 									reg_bank[arg1] <= alu_o;
-                                    reg_bank[3] <= alu_f;
+                                    temp_flags <= alu_f;  // Store ALU flags temporarily
+        							reg_bank[3] <= temp_flags;  // Update flags after one cycle delay
                                     state <= `FETCH;
 								end
 								2'b01: begin
@@ -502,14 +511,16 @@ module CPU (
 						end
                         `SHLR: begin
 							reg_bank[arg2] <= alu_o;
-                            reg_bank[3] <= alu_f;
+                            temp_flags <= alu_f;  // Store ALU flags temporarily
+        					reg_bank[3] <= temp_flags;  // Update flags after one cycle delay
                             state <= `FETCH;
 						end
                         `NAND_NOR: begin
                             case (option)
 								default: begin
 									reg_bank[arg1] <= alu_o;
-                                    reg_bank[3] <= alu_f;
+                                    temp_flags <= alu_f;  // Store ALU flags temporarily
+        							reg_bank[3] <= temp_flags;  // Update flags after one cycle delay
                                     state <= `FETCH;
 								end
 								2'b01: begin
@@ -526,7 +537,8 @@ module CPU (
                             case (option)
 								default: begin
 									reg_bank[arg1] <= alu_o;
-                                    reg_bank[3] <= alu_f;
+                                    temp_flags <= alu_f;  // Store ALU flags temporarily
+        							reg_bank[3] <= temp_flags;  // Update flags after one cycle delay
                                     state <= `FETCH;
 								end
 								2'b01: begin
@@ -544,7 +556,8 @@ module CPU (
 							case (option)
 								default: begin
 									reg_bank[arg1] <= alu_o;
-                                    reg_bank[3] <= alu_f;
+                                    temp_flags <= alu_f;  // Store ALU flags temporarily
+        							reg_bank[3] <= temp_flags;  // Update flags after one cycle delay
                                     state <= `FETCH;
 								end
 								2'b01: begin
@@ -553,7 +566,8 @@ module CPU (
 								end
                                 2'b10: begin
 									reg_bank[arg2] <= alu_o;
-                                    reg_bank[3] <= alu_f;
+                                    temp_flags <= alu_f;  // Store ALU flags temporarily
+        							reg_bank[3] <= temp_flags;  // Update flags after one cycle delay
                                     state <= `FETCH;
 								end
 							endcase
@@ -640,32 +654,38 @@ module CPU (
                         end
                         `ADD_INC: begin
 							reg_bank[arg1] <= alu_o;
-                            reg_bank[3] <= alu_f;
+                            temp_flags <= alu_f;  // Store ALU flags temporarily
+        					reg_bank[3] <= temp_flags;  // Update flags after one cycle delay
                             state <= `FETCH;
 						end
 						`ADC: begin
 							reg_bank[arg1] <= alu_o;
-                            reg_bank[3] <= alu_f;
+                            temp_flags <= alu_f;  // Store ALU flags temporarily
+        					reg_bank[3] <= temp_flags;  // Update flags after one cycle delay
                             state <= `FETCH;
 						end	
 						`SUB_DEC: begin
 							reg_bank[arg1] <= alu_o;
-                            reg_bank[3] <= alu_f;
+                            temp_flags <= alu_f;  // Store ALU flags temporarily
+        					reg_bank[3] <= temp_flags;  // Update flags after one cycle delay
                             state <= `FETCH;
 						end
 						`SBB: begin
 							reg_bank[arg1] <= alu_o;
-                            reg_bank[3] <= alu_f;
+                            temp_flags <= alu_f;  // Store ALU flags temporarily
+        					reg_bank[3] <= temp_flags;  // Update flags after one cycle delay
                             state <= `FETCH;
 						end
 						`NAND_NOR: begin
 							reg_bank[arg1] <= alu_o;
-                            reg_bank[3] <= alu_f;
+                            temp_flags <= alu_f;  // Store ALU flags temporarily
+        					reg_bank[3] <= temp_flags;  // Update flags after one cycle delay
                             state <= `FETCH;
 						end
 						`AND_OR: begin
 							reg_bank[arg1] <= alu_o;
-                            reg_bank[3] <= alu_f;
+                            temp_flags <= alu_f;  // Store ALU flags temporarily
+        					reg_bank[3] <= temp_flags;  // Update flags after one cycle delay
                             state <= `FETCH;
 						end
 						`JMP: begin
