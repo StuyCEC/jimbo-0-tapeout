@@ -50,8 +50,6 @@ module CPU (
 
 	wire [3:0] alu_o;
 	wire [3:0] alu_f;
-	
-	reg [3:0] alu_f_buff;
 
 	reg [11:0] reg_instruction;
 	reg [10:0] program_counter;
