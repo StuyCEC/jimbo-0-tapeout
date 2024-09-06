@@ -24,16 +24,10 @@
 `define NOP  		4'b1111
 
 `define FETCH 0
-`define STAGE_0 1
-`define STAGE_0_B 2
-`define STAGE_1 3
-`define STAGE_1_B 4
-`define STAGE_2 5
-`define STAGE_2_B 6
-`define STAGE_3 7
-`define STAGE_3_B 8
-`define STAGE_4 9
-`define STAGE_4_B 10
+`define STAGE_1 1
+`define STAGE_2 2
+`define STAGE_3 3
+`define STAGE_4 4
 
 module CPU (
 	input wire clk,
@@ -47,7 +41,7 @@ module CPU (
 	reg [4:0] state;
 	reg [3:0] fetch_state;
 
-	reg [3:0] reg_bank [0:6];
+	reg [3:0] reg_bank [0:7];
 
 	reg [3:0] alu_a;
 	reg [3:0] alu_b;
@@ -63,6 +57,27 @@ module CPU (
 	wire [1:0] option;
 	wire [2:0] arg1;
 	wire [2:0] arg2;
+
+	/* debug */
+	wire [11:0] add_reg;
+	wire [3:0] reg0;
+	wire [3:0] reg1;
+	wire [3:0] reg2;
+	wire [3:0] reg3;
+	wire [3:0] reg4;
+	wire [3:0] reg5;
+	wire [3:0] reg6;
+
+	assign add_reg = {reg_bank[6], reg_bank[5], reg_bank[4]};
+
+	assign reg0 = reg_bank[0];
+	assign reg1 = reg_bank[1];
+	assign reg2 = reg_bank[2];
+	assign reg3 = reg_bank[3];
+	assign reg4 = reg_bank[4];
+	assign reg5 = reg_bank[5];
+	assign reg6 = reg_bank[6];
+	
 
 	assign opcode = reg_instruction[11:8];
 	assign option = reg_instruction[7:6];
@@ -104,169 +119,107 @@ module CPU (
 			bus_data_out <= 4'b0000;
 
 		end else begin
-			case (state)
-				`FETCH: begin
-					case (fetch_state)
-						0: begin
-							bus_data_rw <= 1'b0;
-							bus_addr <= program_counter;
-							fetch_state <= 1;
-						end
-						1: begin
-							reg_instruction[11:8] <= bus_data_in;
-							program_counter <= program_counter + 1;
-							fetch_state <= 2;
-						end
-						2: begin
-							bus_addr <= program_counter;
-							fetch_state <= 3;
-						end
-						3: begin
-							reg_instruction[7:4] <= bus_data_in;
-							program_counter <= program_counter + 1;
-							if (
-								(opcode == `JMP) ||
-								(opcode == `JNZ) ||
-								(opcode == `JNC_JNB) ||
-								(opcode == `JNL)
-							)
-							begin
-								fetch_state <= 0;
-								state <= `STAGE_0;
-							end
-							else begin
-							fetch_state <= 4;
-							end
-						end
-						4: begin
-							bus_addr <= program_counter;
-							fetch_state <= 5;
-						end
-						5: begin
-							reg_instruction[3:0] <= bus_data_in;
-							program_counter <= program_counter + 1;
-							bus_addr <= program_counter;
-							fetch_state <= 0; //Reset fetch state
-							state <= `STAGE_0;
-						end
-					endcase
-				end
-				`STAGE_0: begin
-					case (opcode)
-						`MOV: begin
-							case (option)
-								2'b00: reg_bank[arg2] <= reg_bank[arg1];
-								2'b01: begin
-									reg_bank[arg2] <= bus_data_in;
-									program_counter <= program_counter + 1;
-								end
-								default: program_counter <= 11'b11111111111;
-							endcase
-							state <= `FETCH;
-						end
-						
-						`STO: begin
-							case (option)
-								2'b00: begin
+            case (state)
+                `FETCH: begin
+                    case(fetch_state)
+                        0: begin
+                            bus_data_rw <= 1'b0;
+                            bus_addr <= program_counter;
+                        end
+                        1: bus_addr <= program_counter;
+                        2: bus_addr <= program_counter;
+						default: ;
+                    endcase
+                end
+                `STAGE_1: begin
+                    case (opcode)
+                        `MOV: begin
+                            case (option)
+								2'b01: bus_addr <= program_counter;
+                                default: reg_bank[arg2] <= reg_bank[arg1];
+                            endcase
+                        end
+                        `STO: begin
+                            case (option)
+								2'b01: bus_addr <= program_counter;
+								default: begin
 									bus_data_rw <= 1'b1;
-									bus_addr <= {reg_bank[6][3:0], reg_bank[5], reg_bank[4]};
-								end
-								2'b01: begin
-									reg_bank[4] <= bus_data_in;
-									program_counter <= program_counter + 1;
-								end
-								default: program_counter <= 11'b11111111111;
+									bus_addr <= {reg_bank[6][2:0], reg_bank[5], reg_bank[4]};
+                                end
 							endcase
-							state <= `STAGE_1;
-						end
-
-						`LD: begin
+                        end
+                        `LD: begin
 							case (option)
-								2'b00: bus_addr <= {reg_bank[6][3:0], reg_bank[5], reg_bank[4]};
-								2'b01: begin
-									reg_bank[4] <= bus_data_in;
-									program_counter <= program_counter + 1;
-								end
-								default: program_counter <= 11'b11111111111;
+								default: begin
+                                    bus_data_rw <= 1'b0;
+                                    bus_addr <= {reg_bank[6][2:0], reg_bank[5], reg_bank[4]};
+                                end
+								2'b01: bus_addr <= program_counter;
 							endcase
-							state <= `STAGE_1;
 						end
-
 						`ADD_INC: begin
 							alu_mode <= 4'b0000;
 							case (option)
-								2'b00: begin
+								default: begin
 									alu_a <= reg_bank[arg1];
 									alu_b <= reg_bank[arg2];
 								end
-								2'b01: begin
-									alu_a <= bus_data_in;
-									alu_b <= reg_bank[arg2];
-								end
+								2'b01: alu_b <= reg_bank[arg2];
 								2'b10: begin
 									alu_a <= 4'b0001;
 									alu_b <= reg_bank[arg2];
 								end
-								default: program_counter <= 11'b11111111111;
 							endcase
-							state <= `STAGE_1;
 						end
-
 						`ADC: begin
 							alu_mode <= 4'b0001;
 							case (option)
-								2'b00: begin
+								default: begin
 									alu_a <= reg_bank[arg1];
 									alu_b <= reg_bank[arg2];
 								end
 								2'b01: begin
-									alu_a <= bus_data_in;
 									alu_b <= reg_bank[arg2];
 								end
-								default: program_counter <= 11'b11111111111;
 							endcase
-							state <= `STAGE_1;
-						end
-						
+						end	
 						`SUB_DEC: begin
 							alu_mode <= 4'b0010;
 							case (option)
-								2'b00: begin
+								default: begin
 									alu_a <= reg_bank[arg1];
 									alu_b <= reg_bank[arg2];
 								end
 								2'b01: begin
-									alu_a <= bus_data_in;
 									alu_b <= reg_bank[arg2];
 								end
 								2'b10: begin
-									alu_a <= 4'b0001;
-									alu_b <= reg_bank[arg2];
+									alu_a <= reg_bank[arg2];
 								end
-								default: program_counter <= 11'b11111111111;
+								2'b11: begin
+									alu_b <= 4'b0001;
+									alu_a <= reg_bank[arg2];
+								end
 							endcase
-							state <= `STAGE_1;
 						end
-
 						`SBB: begin
 							alu_mode <= 4'b0011;
 							case (option)
-								2'b00: begin
+								default: begin
 									alu_a <= reg_bank[arg1];
 									alu_b <= reg_bank[arg2];
 								end
 								2'b01: begin
-									alu_a <= bus_data_in;
 									alu_b <= reg_bank[arg2];
 								end
-								default: program_counter <= 11'b11111111111;
+								2'b10: begin
+									alu_a <= reg_bank[arg2];
+								end
 							endcase
-							state <= `STAGE_1;
 						end
-						
 						`SHLR: begin
 							case (option)
-								2'b00: begin
+								default: begin
 									alu_mode <= 4'b0100;
 									alu_a <= reg_bank[arg2];
 								end
@@ -274,21 +227,17 @@ module CPU (
 									alu_mode <= 4'b0101;
 									alu_a <= reg_bank[arg2];
 								end
-								default: program_counter <= 11'b11111111111;
 							endcase
-							state <= `STAGE_1;
 						end
-
 						`NAND_NOR: begin
 							case (option)
-								2'b00: begin
+								default: begin
 									alu_mode <= 4'b1010;
 									alu_a <= reg_bank[arg1];
 									alu_b <= reg_bank[arg2];
 								end
 								2'b01: begin
 									alu_mode <= 4'b1010;
-									alu_a <= bus_data_in;
 									alu_b <= reg_bank[arg2];
 								end
 								2'b10: begin
@@ -298,24 +247,19 @@ module CPU (
 								end
 								2'b11: begin
 									alu_mode <= 4'b1011;
-									alu_a <= bus_data_in;
 									alu_b <= reg_bank[arg2];
 								end
-								default: program_counter <= 11'b11111111111;
 							endcase
-							state <= `STAGE_1;
 						end
-						
 						`AND_OR: begin
 							case (option)
-								2'b00: begin
+								default: begin
 									alu_mode <= 4'b0110;
 									alu_a <= reg_bank[arg1];
 									alu_b <= reg_bank[arg2];
 								end
 								2'b01: begin
 									alu_mode <= 4'b0110;
-									alu_a <= bus_data_in;
 									alu_b <= reg_bank[arg2];
 								end
 								2'b10: begin
@@ -325,329 +269,542 @@ module CPU (
 								end
 								2'b11: begin
 									alu_mode <= 4'b0111;
-									alu_a <= bus_data_in;
 									alu_b <= reg_bank[arg2];
 								end
-								default: program_counter <= 11'b11111111111;
 							endcase
 							state <= `STAGE_1;
 						end
-						
 						`XOR_NOT: begin
 							case (option)
-								2'b00: begin
+								default: begin
 									alu_mode <= 4'b1001;
 									alu_a <= reg_bank[arg1];
 									alu_b <= reg_bank[arg2];
 								end
 								2'b01: begin
 									alu_mode <= 4'b1001;
-									alu_a <= bus_data_in;
 									alu_b <= reg_bank[arg2];
 								end
 								2'b10: begin
-									alu_mode <= 4'b1000;
-									alu_a <= reg_bank[arg2];
-								end
-								default: program_counter <= 11'b11111111111;
+                                    alu_mode <= 4'b1000;
+                                    alu_a <= reg_bank[arg2];
+                                end
 							endcase
-							state <= `STAGE_1;
 						end
-
 						`JMP: begin
 							case (option)
-								2'b00: begin
-									program_counter <= {reg_bank[6][3:0], reg_bank[5], reg_bank[4]};
-									state <= `FETCH;
-								end
-								2'b01: begin
-									reg_bank[4] <= bus_data_in;
-									program_counter <= program_counter + 1;
-								end
-								default: program_counter <= 11'b11111111111;
+								default: program_counter <= {reg_bank[6][2:0], reg_bank[5], reg_bank[4]};
+								2'b01: bus_addr <= program_counter;
 							endcase
-							state <= `STAGE_1;
 						end
-
 						`JNZ: begin
 							if (!reg_bank[3][2]) begin
 								case (option)
-									2'b00: begin 
-										program_counter <= {reg_bank[6][3:0], reg_bank[5], reg_bank[4]};
-										state <= `FETCH;
-									end
-									2'b01: begin
-										reg_bank[4] <= bus_data_in;
-										program_counter <= program_counter + 1;
-									end
-									default: program_counter <= 11'b11111111111;
+									default: program_counter <= {reg_bank[6][2:0], reg_bank[5], reg_bank[4]};
+									2'b01: bus_addr <= program_counter;
 								endcase
-								state <= `STAGE_1;
-							end
-							else begin
-								state <= `FETCH;
 							end
 						end
-						
 						`JNC_JNB: begin
 							case (option)
-								2'b00: begin
+								default: begin
 									if (!reg_bank[3][0]) begin
-										program_counter <= {reg_bank[6][3:0], reg_bank[5], reg_bank[4]};
-										state <= `FETCH;
-									end
-									else begin
-										state <= `FETCH;
+										program_counter <= {reg_bank[6][2:0], reg_bank[5], reg_bank[4]};
 									end
 								end
-								2'b01: begin
-									if (!reg_bank[3][0]) begin
-										reg_bank[4] <= bus_data_in;
-										program_counter <= program_counter + 1;	
-										state <= `STAGE_1;
-									end
-									else begin
-										state <= `FETCH;
-									end
-								end
+								2'b01: ;
 								2'b10: begin
 									if (!reg_bank[3][1]) begin
-										program_counter <= {reg_bank[6][3:0], reg_bank[5], reg_bank[4]};
-										state <= `FETCH;
-									end
-									else begin 
-										state <= `FETCH;
+										program_counter <= {reg_bank[6][2:0], reg_bank[5], reg_bank[4]};
 									end
 								end
-								2'b11: begin
-									if (!reg_bank[3][1]) begin
-										reg_bank[4] <= bus_data_in;
-										program_counter <= program_counter + 1;
-										state <= `STAGE_1;
-									end
-									else begin
-										state <= `FETCH;
-									end
-								end
-								default: program_counter <= 11'b11111111111;
+								2'b11: bus_addr <= program_counter;
 							endcase
 						end
-						
 						`JNL: begin
 							if (!reg_bank[3][3]) begin
 								case (option)
-									2'b00: begin
-										program_counter <= {reg_bank[6][3:0], reg_bank[5], reg_bank[4]};
-										state <= `FETCH;
-									end
-									2'b01: begin
-										reg_bank[4] <= bus_data_in;
-										program_counter <= program_counter + 1;
-										state <= `STAGE_1;
-									end
-									default: program_counter <= 11'b11111111111;
+									default: program_counter <= {reg_bank[6][2:0], reg_bank[5], reg_bank[4]};
+									2'b01: bus_addr <= program_counter;
 								endcase
 							end
-							else begin
+						end
+                        default: ;
+                    endcase
+                end
+
+                `STAGE_2: begin
+                    bus_addr <= program_counter;
+                end
+
+                `STAGE_3: begin
+                    bus_addr <= program_counter;
+                end
+
+                `STAGE_4: begin
+                    case (opcode) 
+                        `STO: begin
+							bus_addr <= {reg_bank[6][2:0], reg_bank[5], reg_bank[4]};
+						end
+                        `LD: bus_addr <= {reg_bank[6][2:0], reg_bank[5], reg_bank[4]};
+                        default: ;
+                    endcase
+                end
+            endcase
+        end
+        
+    end
+    always @(negedge clk) begin
+        if (rst_n) begin
+            case (state)
+                `FETCH: begin
+                    case(fetch_state)
+                        0: begin
+                            reg_instruction[11:8] <= bus_data_in;
+                            program_counter <= program_counter + 1;
+                            fetch_state <= 1;
+                        end
+                        1: begin
+                            reg_instruction[7:4] <= bus_data_in;
+                            program_counter <= program_counter + 1;
+                            if (
+								(opcode == `JMP) ||
+								(opcode == `JNZ) ||
+								(opcode == `JNC_JNB) ||
+								(opcode == `JNL)
+							)
+							begin
+								fetch_state <= 0;
+								state <= `STAGE_1;
+							end
+                            else begin
+                                fetch_state <= 2;
+                            end
+                        end
+                        2: begin
+                            reg_instruction[3:0] <= bus_data_in;
+                            program_counter <= program_counter + 1;
+                            fetch_state <= 0;
+                            state <= `STAGE_1;
+                        end
+						default: ;
+                    endcase
+                end
+                `STAGE_1: begin
+                    case (opcode)
+                        `MOV: begin
+                            case (option)
+                                2'b01: begin
+                                    reg_bank[arg2] <= bus_data_in;
+                                    program_counter <= program_counter + 1;
+                                end
+                                default: ;
+                            endcase
+                            state <= `FETCH;
+                        end
+                        `STO: begin
+                            case (option)
+                                default: begin
+                                    bus_data_out <= reg_bank[arg2];
+                                    state <= `FETCH;
+                                end
+								2'b01: begin
+                                    reg_bank[6] <= bus_data_in;
+                                    program_counter <= program_counter + 1;
+                                    state <= `STAGE_2;
+                                end
+							endcase
+                        end
+                        `LD: begin
+                            case (option)
+                                default: begin
+                                    reg_bank[arg2] <= bus_data_in;
+                                    state <= `FETCH;
+                                end
+                                2'b01: begin
+                                    reg_bank[6] <= bus_data_in;
+                                    program_counter <= program_counter + 1;
+                                    state <= `STAGE_2;
+                                end
+                            endcase
+                        end
+                        `ADD_INC: begin
+							case (option)
+								default: begin
+									reg_bank[arg1] <= alu_o;
+								end
+								2'b01: begin
+									alu_a <= bus_data_in;
+								end
+                                2'b10: begin
+									reg_bank[arg2] <= alu_o;
+								end
+							endcase
+							state <= `STAGE_2;
+						end
+                        `ADC: begin
+							case (option)
+								default: begin
+									reg_bank[arg1] <= alu_o;
+								end
+								2'b01: begin
+									alu_a <= bus_data_in;
+								end
+							endcase
+							state <= `STAGE_2;
+						end
+                        `SUB_DEC: begin
+							case (option)
+								default: begin
+									reg_bank[arg1] <= alu_o;
+								end
+								2'b01: begin
+									alu_a <= bus_data_in;
+								end
+								2'b10: begin
+									alu_b <= bus_data_in;
+								end
+                                2'b11: begin
+									reg_bank[arg2] <= alu_o;
+								end
+							endcase
+							state <= `STAGE_2;
+						end
+                        `SBB: begin
+							case (option)
+								default: begin
+									reg_bank[arg1] <= alu_o;
+								end
+								2'b01: begin
+									alu_a <= bus_data_in;
+								end
+								2'b10: begin
+									alu_b <= bus_data_in;
+								end
+							endcase
+							state <= `STAGE_2;
+						end
+                        `SHLR: begin
+							reg_bank[arg2] <= alu_o;
+                            state <= `STAGE_2;
+						end
+                        `NAND_NOR: begin
+                            case (option)
+								default: begin
+									reg_bank[arg1] <= alu_o;
+								end
+								2'b01: begin
+                                    alu_a <= bus_data_in;
+								end
+								2'b11: begin
+                                    alu_a <= bus_data_in;
+								end
+                            endcase
+							state <= `STAGE_2;
+                        end
+                        `AND_OR: begin
+                            case (option)
+								default: begin
+									reg_bank[arg1] <= alu_o;
+								end
+								2'b01: begin
+                                    alu_a <= bus_data_in;
+								end
+								2'b11: begin
+                                    alu_a <= bus_data_in;
+								end
+                            endcase
+							state <= `STAGE_2;
+                        end
+                        `XOR_NOT: begin
+							alu_mode <= 4'b0000;
+							case (option)
+								default: begin
+									reg_bank[arg1] <= alu_o;
+                                    
+								end
+								2'b01: begin
+									alu_a <= bus_data_in;
+								end
+                                2'b10: begin
+									reg_bank[arg2] <= alu_o;
+								end
+							endcase
+							state <= `STAGE_2;
+						end
+                        `JMP: begin
+							case (option)
+								default: state <= `FETCH;
+								2'b01: begin
+									reg_bank[6] <= bus_data_in;
+									program_counter <= program_counter + 1;
+                                    state <= `STAGE_2;
+								end
+							endcase
+						end
+                        `JNZ: begin
+							if (!reg_bank[3][2]) begin
+								case (option)
+									default: state <= `FETCH;
+									2'b01: begin
+                                        reg_bank[6] <= bus_data_in;
+                                        program_counter <= program_counter + 1;
+                                        state <= `STAGE_2;
+                                    end
+								endcase
+							end
+                            else begin
+                                state <= `FETCH;
+                            end
+						end
+                        `JNC_JNB: begin
+							case (option)
+								default: state <= `FETCH;
+								2'b01: begin
+                                    if (!reg_bank[3][0]) begin
+                                        reg_bank[6] <= bus_data_in;
+                                        program_counter <= program_counter + 1;
+                                        state <= `STAGE_2;
+                                    end
+                                    else begin
+                                        state <= `FETCH;
+                                    end
+                                end
+								2'b11: begin
+                                    if (!reg_bank[3][1]) begin
+                                        reg_bank[6] <= bus_data_in;
+                                        program_counter <= program_counter + 1;
+                                        state <= `STAGE_2;
+                                    end
+                                    else begin
+                                        state <= `FETCH;
+                                    end
+                                end
+							endcase
+						end
+                        `JNL: begin
+							if (!reg_bank[3][3]) begin
+								case (option)
+									default: state <= `FETCH;
+									2'b01: begin
+                                        reg_bank[6] <= bus_data_in;
+                                        program_counter <= program_counter + 1;
+                                        state <= `STAGE_2;
+                                    end
+								endcase
+							end
+                            else begin
+                                state <= `FETCH;
+                            end
+						end
+                        default: state <= `FETCH;
+                    endcase
+                end
+                `STAGE_2: begin
+                    case (opcode)
+                        `STO: begin
+                            reg_bank[5] <= bus_data_in;
+                            program_counter <= program_counter + 1;
+                            state <= `STAGE_3;
+                        end
+                        `LD: begin
+							reg_bank[5] <= bus_data_in;
+                            program_counter <= program_counter + 1;
+                            state <= `STAGE_3;
+                        end
+                        `ADD_INC: begin
+							case (option)
+								default: begin
+									reg_bank[3] <= alu_f;
+									state <= `FETCH;
+								end
+								2'b01: begin
+									alu_a <= bus_data_in;
+									state <= `STAGE_3;
+								end
+                                2'b10: begin
+									reg_bank[3] <= alu_f;
+									state <= `FETCH;
+                                    
+								end
+							endcase
+						end
+                        `ADC: begin
+							case (option)
+								default: begin
+									reg_bank[3] <= alu_f;
+									state <= `FETCH;
+								end
+								2'b01: begin
+									alu_a <= bus_data_in;
+									state <= `STAGE_3;
+								end
+							endcase
+						end
+                        `SUB_DEC: begin
+							case (option)
+								default: begin
+									reg_bank[3] <= alu_f;
+									state <= `FETCH;
+								end
+								2'b01: begin
+									alu_a <= bus_data_in;
+									state <= `STAGE_3;
+								end
+								2'b10: begin
+									alu_b <= bus_data_in;
+									state <= `STAGE_3;
+								end
+                                2'b11: begin
+									reg_bank[3] <= alu_f;
+									state <= `FETCH;
+								end
+							endcase
+						end
+                        `SBB: begin
+							case (option)
+								default: begin
+									reg_bank[3] <= alu_f;
+									state <= `FETCH;
+								end
+								2'b01: begin
+									alu_a <= bus_data_in;
+									state <= `STAGE_3;
+								end
+								2'b10: begin
+									alu_b <= bus_data_in;
+									state <= `STAGE_3;
+								end
+							endcase
+						end
+                        `SHLR: begin
+							reg_bank[3] <= alu_f;
+                            state <= `FETCH;
+						end
+                        `NAND_NOR: begin
+                            case (option)
+								default: begin
+									reg_bank[3] <= alu_f;
+									state <= `FETCH;
+								end
+								2'b01: begin
+                                    alu_a <= bus_data_in;
+									state <= `STAGE_3;
+								end
+								2'b11: begin
+                                    alu_a <= bus_data_in;
+									state <= `STAGE_3;
+								end
+                            endcase
+                        end
+                        `AND_OR: begin
+                            case (option)
+								default: begin
+									reg_bank[3] <= alu_f;
+									state <= `FETCH;
+								end
+								2'b01: begin
+                                    alu_a <= bus_data_in;
+									state <= `STAGE_3;
+								end
+								2'b11: begin
+                                    alu_a <= bus_data_in;
+									state <= `STAGE_3;
+								end
+                            endcase
+                        end
+                        `XOR_NOT: begin
+							alu_mode <= 4'b0000;
+							case (option)
+								default: begin
+									reg_bank[3] <= alu_f;
+									state <= `FETCH;
+								end
+								2'b01: begin
+									alu_a <= bus_data_in;
+									state <= `STAGE_3;
+								end
+                                2'b10: begin
+									reg_bank[3] <= alu_f;
+									state <= `FETCH;
+								end
+							endcase
+						end
+						`JMP: begin
+							reg_bank[5] <= bus_data_in;
+                            program_counter <= program_counter + 1;
+                            state <= `STAGE_3;
+						end
+						`JNZ: begin
+							reg_bank[5] <= bus_data_in;
+                            program_counter <= program_counter + 1;
+                            state <= `STAGE_3;
+						end
+						`JNC_JNB: begin
+							reg_bank[5] <= bus_data_in;
+                            program_counter <= program_counter + 1;
+                            state <= `STAGE_3;
+						end
+						`JNL: begin
+							reg_bank[5] <= bus_data_in;
+                            program_counter <= program_counter + 1;
+                            state <= `STAGE_3;
+						end
+                        default: ;
+                    endcase
+                end
+
+                `STAGE_3: begin
+						case (opcode) 
+							default: begin
+								reg_bank[4] <= bus_data_in;
+								program_counter <= program_counter + 1;
+								state <= `STAGE_4;
+							end
+							`ADD_INC: begin
+								reg_bank[3] <= alu_f;
 								state <= `FETCH;
 							end
-						end
+							`ADC: begin
+								reg_bank[3] <= alu_f;
+								state <= `FETCH;
+							end	
+							`SUB_DEC: begin
+								reg_bank[3] <= alu_f;
+								state <= `FETCH;
+							end
+							`SBB: begin
+								reg_bank[3] <= alu_f;
+								state <= `FETCH;
+							end
+							`NAND_NOR: begin
+								reg_bank[3] <= alu_f;
+								state <= `FETCH;
+							end
+							`AND_OR: begin
+								reg_bank[3] <= alu_f;
+								state <= `FETCH;
+							end
+						endcase
+                end
 
-						default: state <= `FETCH;
-
-					endcase
-				end
-				
-				`STAGE_1: begin
-
-					case (opcode)
-						`STO: begin
-							case (option)
-								2'b00: begin
-									bus_data_out <= reg_bank[arg2];
-									state <= `FETCH;
-								end
-								2'b01: begin
-									reg_bank[5] <= bus_data_in;
-									program_counter <= program_counter + 1;
-									state <= `STAGE_2;
-								end
-								default: program_counter <= 11'b11111111111;
-							endcase
-						end
-
-						`LD: begin
-							case (option)
-								2'b00: begin
-									reg_bank[arg2] <= bus_data_in;
-									state <= `FETCH;
-								end
-								2'b01: begin
-									reg_bank[5] <= bus_data_in;
-									program_counter <= program_counter + 1;
-									state <= `STAGE_2;
-								end
-								default: program_counter <= 11'b11111111111;
-							endcase
-						end
-
-						`ADD_INC: begin
-							case (option)
-								2'b01: reg_bank[arg2] <= alu_o;
-								default: reg_bank[arg1] <= alu_o;
-							endcase
-							reg_bank[3] <= alu_f;
-							state <= `FETCH;
-						end
-
-						`ADC: begin
-							reg_bank[arg1] <= alu_o;
-							reg_bank[3] <= alu_f;
-							state <= `FETCH;
-						end
-						
-						`SUB_DEC: begin
-							case (option)
-								2'b00: reg_bank[arg1] <= alu_o;
-								default: reg_bank[arg2] <= alu_o;
-							endcase
-							reg_bank[3] <= alu_f;
-							state <= `FETCH;
-						end
-
-						`SBB: begin
-							case (option)
-								2'b00: reg_bank[arg1] <= alu_o;
-								default: reg_bank[arg2] <= alu_o;
-							endcase
-							reg_bank[3] <= alu_f;
-							state <= `FETCH;
-						end
-						
-						`SHLR: begin
-							reg_bank[arg2] <= alu_o;
-							state <= `FETCH;
-						end
-
-						`NAND_NOR: begin
-							case (option)
-								2'b00: reg_bank[arg1] <= alu_o;
-								2'b11: reg_bank[arg1] <= alu_o;
-								default: reg_bank[arg2] <= alu_o;
-							endcase
-							reg_bank[3] <= alu_f;
-							state <= `FETCH;
-						end
-						
-						`AND_OR: begin
-							case (option)
-								2'b00: reg_bank[arg1] <= alu_o;
-								2'b11: reg_bank[arg1] <= alu_o;
-								default: reg_bank[arg2] <= alu_o;
-							endcase
-							reg_bank[3] <= alu_f;
-							state <= `FETCH;
-						end
-						
-						`XOR_NOT: begin
-							case (option)
-								2'b00: reg_bank[arg1] <= alu_o;
-								default: reg_bank[arg2] <= alu_o;
-							endcase
-							state <= `FETCH;
-						end
-
-						`JMP: begin
-							reg_bank[5] <= bus_data_in;
-							program_counter <= program_counter + 1;
-							state <= `STAGE_2;
-						end
-
-						`JNZ: begin
-							reg_bank[5] <= bus_data_in;
-							program_counter <= program_counter + 1;
-							state <= `STAGE_2;
-						end
-						
-						`JNC_JNB: begin
-							reg_bank[5] <= bus_data_in;
-							program_counter <= program_counter + 1;
-							state <= `STAGE_2;
-						end
-						
-						`JNL: begin
-							reg_bank[5] <= bus_data_in;
-							program_counter <= program_counter + 1;
-							state <= `STAGE_2;
-						end
-
-						default: state <= `FETCH;
-					endcase
-				end
-
-				`STAGE_2: begin
-					state <= `STAGE_3;
-					case (opcode)
-						`STO: reg_bank[6] <= bus_data_in;
-						`LD: reg_bank[6] <= bus_data_in;
-						`JMP: reg_bank[6] <= bus_data_in;
-						`JNZ: reg_bank[6] <= bus_data_in;
-						`JNC_JNB: reg_bank[6] <= bus_data_in;
-						`JNL: reg_bank[6] <= bus_data_in;
-						default: program_counter <= 11'b11111111111;
-					endcase
-				end
-					
-
-				`STAGE_3: begin
-
-					case (opcode)
-						`STO: begin
+                `STAGE_4: begin
+                    case (opcode)
+                        `STO: begin
 							bus_data_rw <= 1'b1;
-							bus_addr <= {reg_bank[6][3:0], reg_bank[5], reg_bank[4]};
-							state <= `STAGE_4;
+							bus_data_out <= reg_bank[arg2];
 						end
-
-						`LD: begin
-							bus_addr <= {reg_bank[6][3:0], reg_bank[5], reg_bank[4]};
-							state <= `STAGE_4;
-						end
-
-						`JMP: begin
-							program_counter <= {reg_bank[6][3:0], reg_bank[5], reg_bank[4]};
-							state <= `FETCH;
-						end
-
-						`JNZ: begin
-							program_counter <= {reg_bank[6][3:0], reg_bank[5], reg_bank[4]};
-							state <= `FETCH;
-						end
-						
-						`JNC_JNB: begin
-							program_counter <= {reg_bank[6][3:0], reg_bank[5], reg_bank[4]};
-							state <= `FETCH;
-						end
-						
-						`JNL: begin
-							program_counter <= {reg_bank[6][3:0], reg_bank[5], reg_bank[4]};
-							state <= `FETCH;
-						end
-
-						default: state <= `FETCH;
-					endcase
-				end
-
-				`STAGE_4: begin
+                        `LD: reg_bank[arg2] <= bus_data_in;
+						`JMP: program_counter <= {reg_bank[6][2:0], reg_bank[5], reg_bank[4]};
+						`JNZ: program_counter <= {reg_bank[6][2:0], reg_bank[5], reg_bank[4]};	
+						`JNC_JNB: program_counter <= {reg_bank[6][2:0], reg_bank[5], reg_bank[4]};
+						`JNL: program_counter <= {reg_bank[6][2:0], reg_bank[5], reg_bank[4]};
+                        default: ;
+                    endcase
+					//$display("%h, %h, %h", reg_bank[6], reg_bank[5], reg_bank[4]);
 					state <= `FETCH;
-
-					case(opcode)
-						`STO: bus_data_out <= reg_bank[arg2];
-						`LD: reg_bank[arg2] <= bus_data_in;
-						default: program_counter <= 11'b11111111111;
-					endcase
-				end
-			endcase
-		end
-	end
-
+                end
+            endcase
+        end
+    end
 endmodule

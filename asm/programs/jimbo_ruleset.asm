@@ -17,10 +17,10 @@
 {
     mov {r1: reg},      {r2: reg}       => 0x0`4 @ 0x0`2 @ r1`3  @ r2`3
     mov {value: u4},    {r1: reg}       => 0x0`4 @ 0x1`2 @ 0x0`3 @ r1`3 @ value`4
-    sto {r1: reg}                            => 0x1`4 @ 0x0`2 @ 0x0`3 @ r1`3
-    sto {r1: reg },           {value: u12}    => 0x1`4 @ 0x1`2 @ 0x0`3 @ r1`3 @ value`12
-    ld  {r1: reg}                            => 0x2`4 @ 0x0`2 @ 0x0`3 @ r1`3
-    ld  {r1: reg},           {value: u12}    => 0x2`4 @ 0x1`2 @ 0x0`3 @ r1`3 @ value`12
+    sto {r1: reg}                       => 0x1`4 @ 0x0`2 @ 0x0`3 @ r1`3
+    sto {r1: reg},      {value: u12}    => 0x1`4 @ 0x1`2 @ 0x0`3 @ r1`3 @ value`12
+    ld  {r1: reg}                       => 0x2`4 @ 0x0`2 @ 0x0`3 @ r1`3
+    ld  {r1: reg},      {value: u12}    => 0x2`4 @ 0x1`2 @ 0x0`3 @ r1`3 @ value`12
     add {r1: reg},      {r2: reg}       => 0x3`4 @ 0x0`2 @ r1`3  @ r2`3
     add {r1: reg},      {value: u4}     => 0x3`4 @ 0x1`2 @ 0x0`3 @ r1`3 @ value`4
     inc {r1: reg}                       => 0x3`4 @ 0x2`2 @ 0x0`3 @ r1`3
@@ -33,16 +33,16 @@
     sbb {r1: reg},      {r2: reg}       => 0x6`4 @ 0x0`2 @ r1`3  @ r2`3
     sbb {r1: reg},      {value: u4}     => 0x6`4 @ 0x1`2 @ 0x0`3 @ r1`3 @ value`4
     sbb {value: u4},    {r1: reg}       => 0x6`4 @ 0x2`2 @ 0x0`3 @ r1`3 @ value`4
-    shl {r1: reg}                       => 0x7`4 @ 0x0`2 @ 0x0`3 @ r2`3
-    shr {r1: reg}                       => 0x7`4 @ 0x1`2 @ 0x0`3 @ r2`3
+    shl {r1: reg}                       => 0x7`4 @ 0x0`2 @ 0x0`3 @ r1`3
+    shr {r1: reg}                       => 0x7`4 @ 0x1`2 @ 0x0`3 @ r1`3
     nand {r1: reg}, {r2: reg}           => 0x8`4 @ 0x0`2 @ r1`3  @ r2`3
     nand {r1: reg}, {value: u4}         => 0x8`4 @ 0x1`2 @ 0x0`3 @ r1`3 @ value`4
-    nor  {r1: reg}, {r2: reg}           => 0x8`4 @ 0x0`2 @ r1`3  @ r2`3
-    nor  {r1: reg}, {value: u4}         => 0x8`4 @ 0x1`2 @ 0x0`3 @ r2`3 @ value`4
+    nor  {r1: reg}, {r2: reg}           => 0x8`4 @ 0x2`2 @ r1`3  @ r2`3
+    nor  {r1: reg}, {value: u4}         => 0x8`4 @ 0x3`2 @ 0x0`3 @ r2`3 @ value`4
     and  {r1: reg}, {r2: reg}           => 0x9`4 @ 0x0`2 @ r1`3  @ r2`3
     and  {r1: reg}, {value: u4}         => 0x9`4 @ 0x1`2 @ 0x0`3 @ r1`3 @ value`4
-    or   {r1: reg}, {r2: reg}           => 0x9`4 @ 0x0`2 @ r1`3  @ r2`3
-    or   {r1: reg}, {value: u4}         => 0x9`4 @ 0x1`2 @ 0x0`3 @ r1`3 @ value`4
+    or   {r1: reg}, {r2: reg}           => 0x9`4 @ 0x2`2 @ r1`3  @ r2`3
+    or   {r1: reg}, {value: u4}         => 0x9`4 @ 0x3`2 @ 0x0`3 @ r1`3 @ value`4
     xor  {r1: reg}, {r2: reg}           => 0xa`4 @ 0x0`2 @ r1`3  @ r2`3
     xor  {r1: reg}, {value: u4}         => 0xa`4 @ 0x1`2 @ 0x0`3 @ r1`3 @ value`4
     not  {r1: reg}                      => 0xa`4 @ 0x2`2 @ 0x0`3 @ r1`3

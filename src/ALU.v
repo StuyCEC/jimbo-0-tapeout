@@ -14,6 +14,8 @@ module ALU (
 	output reg [3:0] flags
 );
 
+	initial flags = 4'b0000;
+
 	always @(*) begin
 		case (mode)
 			4'b0000: c = a + b;
